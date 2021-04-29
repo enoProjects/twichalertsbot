@@ -5,7 +5,10 @@ import org.eno.bot.widgets.effects.RepeatOnDelayEffect;
 
 public class FlowLane extends EnoItem {
 
-    private Direction direction;
+    private final Direction direction;
+    private final boolean flip;
+    private final int movementStep;
+    private final int delay;
 
     public enum Direction {
         LEFT_TO_RIGHT,
@@ -19,11 +22,24 @@ public class FlowLane extends EnoItem {
     private int x = 100;
 
     public FlowLane(final Direction direction) {
+        this(direction,
+                direction.equals(Direction.RIGHT_TO_LEFT),
+                10,
+                30);
+    }
+
+    public FlowLane(final Direction direction,
+                    final boolean flip,
+                    final int movementStep,
+                    final int delay) {
         this.direction = direction;
+        this.flip = flip;
+        this.movementStep = movementStep;
+        this.delay = delay;
 
         container = (HTMLDivElement) DomGlobal.document.createElement("div");
         container.style.position = "relative";
-        container.style.zIndex = CSSProperties.ZIndexUnionType.of("-1");
+        container.style.zIndex = CSSProperties.ZIndexUnionType.of("1");
         container.style.left = x + "px";
 
         container.style.overflow = "hidden";
@@ -36,7 +52,7 @@ public class FlowLane extends EnoItem {
 
             @Override
             public double getDelay() {
-                return 30;
+                return delay;
             }
         });
     }
@@ -44,7 +60,7 @@ public class FlowLane extends EnoItem {
     public void addItem(EnoItem item) {
         final HTMLElement element = item.getElement();
         element.style.cssFloat = "left";
-        if (direction.equals(Direction.RIGHT_TO_LEFT)) {
+        if (flip) {
             element.style.transform = "scaleX(-1)";
         }
         container.append(element);
@@ -53,7 +69,6 @@ public class FlowLane extends EnoItem {
     public void clear() {
         NodeList<Node> childNodes = container.childNodes;
         childNodes.forEach((currentValue, currentIndex, listObj) -> container.removeChild(currentValue));
-
     }
 
     @Override
@@ -66,14 +81,14 @@ public class FlowLane extends EnoItem {
             switch (direction) {
 
                 case LEFT_TO_RIGHT:
-                    x += 10;
+                    x += movementStep;
                     component.style.left = x + "px";
                     if (x > END_X) {
                         x = START_X;
                     }
                     break;
                 case RIGHT_TO_LEFT:
-                    x -= 10;
+                    x -= movementStep;
                     component.style.left = x + "px";
                     if (x < START_X) {
                         x = END_X;

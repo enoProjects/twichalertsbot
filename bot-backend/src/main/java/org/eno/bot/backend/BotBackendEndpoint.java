@@ -2,10 +2,9 @@ package org.eno.bot.backend;
 
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import com.github.twitch4j.chat.events.channel.FollowEvent;
-import org.eno.bot.api.ChatMessage;
-import org.eno.bot.api.Follow;
-import org.eno.bot.api.JoinWithPoints;
-import org.eno.bot.api.Subscription;
+import com.github.twitch4j.chat.events.channel.SubscriptionEvent;
+import com.github.twitch4j.pubsub.events.RewardRedeemedEvent;
+import org.eno.bot.api.*;
 import org.eno.bot.backend.messages.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,11 +20,15 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @ServerEndpoint(value = "/chat/{username}",
         decoders = {
                 MessageDecoder.class,
+                FooterChangeDecoder.class,
+                ChannelPointsRedeemedDecoder.class,
                 SubscriptionDecoder.class,
                 JoinWithPointsDecoder.class,
                 FollowDecoder.class},
         encoders = {
                 MessageEncoder.class,
+                ChannelPointsRedeemedEncoder.class,
+                FooterChangeEncoder.class,
                 SubscriptionEncoder.class,
                 JoinWithPointsEncoder.class,
                 FollowEncoder.class})
@@ -50,7 +53,18 @@ public class BotBackendEndpoint {
 
         twitchConnection.init(
                 getChannelMessageEventCallback(),
-                getFollowEventCallback());
+                getSubscriptionEventCallback(),
+                getFollowEventCallback(),
+                getRewardRedeemedEventCallback());
+    }
+
+    private Callback<SubscriptionEvent> getSubscriptionEventCallback() {
+        return followEvent -> {
+            final Subscription subscription = new Subscription();
+            subscription.setName(followEvent.getUser().getName());
+
+            safeBroadCast(subscription);
+        };
     }
 
     private Callback<FollowEvent> getFollowEventCallback() {
@@ -62,24 +76,53 @@ public class BotBackendEndpoint {
         };
     }
 
+    private Callback<RewardRedeemedEvent> getRewardRedeemedEventCallback() {
+        return x -> {
+            final ChannelPointsRedeemed channelPointsRedeemed = new ChannelPointsRedeemed();
+            channelPointsRedeemed.setRedeemerDisplayName(x.getRedemption().getUser().getDisplayName());
+            channelPointsRedeemed.setTitle(x.getRedemption().getReward().getTitle());
+            channelPointsRedeemed.setUserInput(emptyIfNull(x.getRedemption().getUserInput()));
+
+            safeBroadCast(channelPointsRedeemed);
+        };
+    }
+
+    private String emptyIfNull(final String userInput) {
+        if (userInput == null) {
+            return "";
+        } else {
+            return userInput;
+        }
+    }
+
     @NotNull
     private Callback<ChannelMessageEvent> getChannelMessageEventCallback() {
         return channelMessageEvent -> {
-            if (channelMessageEvent.getMessage().startsWith("!sub")) {
+//            if (channelMessageEvent.getMessage().startsWith("!sub")) {
+//
+//                final Subscription sub = new Subscription();
+//                sub.setName("EvelynGG");
+//                sub.setMonths(4);
+//                sub.setMessage("Thanks for sub");
+//
+//                safeBroadCast(sub);
 
-                final Subscription sub = new Subscription();
-                sub.setName("Kalle");
-                sub.setMonths(4);
-                sub.setMessage("Thanks for content");
+//            } else if (channelMessageEvent.getMessage().startsWith("!follow")) {
+//
+//                final Follow follow = new Follow();
+//                follow.setName(channelMessageEvent.getUser().getName());
+//
+//                safeBroadCast(follow);
+//            } else
+            if (channelMessageEvent.getMessage().startsWith(FooterChange.FOOTER)
+                    && ( isModerator(channelMessageEvent.getUser().getName())
+                            || isChannelOwner(channelMessageEvent) )) {
 
-                safeBroadCast(sub);
+                final FooterChange footerChange = new FooterChange();
+                footerChange.setFrom(channelMessageEvent.getUser().getName());
+                footerChange.setContent(channelMessageEvent.getMessage().substring(FooterChange.FOOTER.length()));
 
-            } else if (channelMessageEvent.getMessage().startsWith("!follow")) {
-
-                final Follow follow = new Follow();
-                follow.setName(channelMessageEvent.getUser().getName());
-
-                safeBroadCast(follow);
+                safeBroadCast(footerChange);
             } else if (channelMessageEvent.getMessage().startsWith("!join")) {
 
                 final JoinWithPoints joinWithPoints = new JoinWithPoints();
@@ -96,6 +139,15 @@ public class BotBackendEndpoint {
                 safeBroadCast(chatMessage);
             }
         };
+    }
+
+    private boolean isChannelOwner(ChannelMessageEvent channelMessageEvent) {
+        return channelMessageEvent.getChannel().getName().equals(channelMessageEvent.getUser().getName());
+    }
+
+    private boolean isModerator(String name) {
+        return twitchConnection.getTwitchClient().getMessagingInterface()
+                .getChatters(TwitchConnection.ENODEV_CHANNEL).execute().getModerators().contains(name);
     }
 
     private void safeBroadCast(Object sub) {

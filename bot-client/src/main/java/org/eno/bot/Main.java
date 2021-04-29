@@ -4,13 +4,11 @@ import elemental2.dom.CSSProperties;
 import elemental2.dom.DomGlobal;
 import elemental2.dom.HTMLDivElement;
 import elemental2.dom.HTMLElement;
+import org.eno.bot.api.ChannelPointsRedeemed;
 import org.eno.bot.api.Follow;
 import org.eno.bot.api.Subscription;
 import org.eno.bot.util.EventBus;
-import org.eno.bot.widgets.EnoBossImage;
-import org.eno.bot.widgets.EnoElement;
-import org.eno.bot.widgets.FlowImage;
-import org.eno.bot.widgets.FlowLane;
+import org.eno.bot.widgets.*;
 import org.eno.bot.widgets.effects.SoundEffect;
 import org.eno.bot.widgets.effects.TimeoutEffect;
 
@@ -25,12 +23,14 @@ public class Main implements EnoElement {
 
     private FlowLane joinFlowLaneTop = new FlowLane(FlowLane.Direction.LEFT_TO_RIGHT);
     private FlowLane joinFlowLaneBottom = new FlowLane(FlowLane.Direction.RIGHT_TO_LEFT);
+    private Footer footer = new Footer();
 
     private boolean leftRightToggle = true;
 
     private boolean canJoinToggle = false;
 
     private Queue<Subscription> subscriptionQueue = new LinkedList<>();
+    private Queue<ChannelPointsRedeemed> channelPointsRedeemedQueue = new LinkedList<>();
     private Queue<Follow> followQueue = new LinkedList<>();
 
     public Main() {
@@ -40,6 +40,10 @@ public class Main implements EnoElement {
         support.append(joinFlowLaneTop.getElement());
         support.append(joinFlowLaneBottom.getElement());
 
+        footer.getBackgroundStyle().background = "#008080";
+
+        support.append(footer.getElement());
+
         DomGlobal.setInterval(checkQueues(),
                 500);
 
@@ -48,6 +52,10 @@ public class Main implements EnoElement {
         });
         EventBus.instance().listenFollow(follow -> {
             followQueue.add(follow);
+        });
+
+        EventBus.instance().listenChannelPointsRedeemed(channelPointsRedeemed -> {
+            channelPointsRedeemedQueue.add(channelPointsRedeemed);
         });
 
         EventBus.instance().listenJoinWithPoints(joinWithPoints -> {
@@ -68,12 +76,25 @@ public class Main implements EnoElement {
         return p0 -> {
             if (!isAlertRunning && !subscriptionQueue.isEmpty()) {
                 fireSubscription(subscriptionQueue.poll());
+            } else if (!isAlertRunning && !channelPointsRedeemedQueue.isEmpty()) {
+                fireChannelPointsRedeemed(channelPointsRedeemedQueue.poll());
             } else if (!isAlertRunning && !followQueue.isEmpty()) {
                 fireFollow(followQueue.poll());
             } else if (!isAlertRunning) {
                 clearJoins();
             }
         };
+    }
+
+    private void fireChannelPointsRedeemed(ChannelPointsRedeemed channelPointsRedeemed) {
+        canJoinToggle = true;
+        isAlertRunning = true;
+        main.append(
+                new EnoBossImage(channelPointsRedeemed.getUserInput(),
+                        getTimeoutEffect()
+//                        ,
+//                        new SoundEffect("sounds/Jorgosjorisee.ogg")
+                ).getElement());
     }
 
     private void fireFollow(Follow follow) {

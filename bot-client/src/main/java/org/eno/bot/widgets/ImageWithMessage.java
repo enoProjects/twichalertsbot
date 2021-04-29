@@ -28,7 +28,9 @@ public class ImageWithMessage
         textContainer = (HTMLDivElement) DomGlobal.document.createElement("div");
         textContainer.className = "textNode";
         textContainer.style.textAlign = "center";
-        textContainer.style.fontSize = CSSProperties.FontSizeUnionType.of("24px");
+        textContainer.style.fontSize = CSSProperties.FontSizeUnionType.of("30px");
+        textContainer.style.color = "White";
+        textContainer.style.textShadow = "2px 2px 4px #000000";
         final Text textNode = DomGlobal.document.createTextNode(text);
 
         textContainer.append(textNode);
