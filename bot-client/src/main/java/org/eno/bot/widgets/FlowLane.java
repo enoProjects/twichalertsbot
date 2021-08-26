@@ -17,8 +17,8 @@ public class FlowLane extends EnoItem {
 
     private final HTMLDivElement container;
 
-    private final int START_X = -2000;
-    private final int END_X = 2000;
+    private final int START_X = -DomGlobal.window.innerWidth;
+    private final int END_X = DomGlobal.window.innerWidth;
     private int x = 100;
 
     public FlowLane(final Direction direction) {

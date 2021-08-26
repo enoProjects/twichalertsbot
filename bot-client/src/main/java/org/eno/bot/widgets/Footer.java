@@ -15,7 +15,6 @@ public class Footer extends EnoItem {
 
     public Footer() {
 
-        // TODO allow channel moderators to update footer text
         // TODO allow usage of special characters like < > in messages in the clients
         // TODO use emotes in messages
         // TODO make a better follow sound
@@ -25,7 +24,7 @@ public class Footer extends EnoItem {
 
         container.style.position = "fixed";
         container.style.bottom = "0";
-        container.style.height = CSSProperties.HeightUnionType.of("35px");
+        container.style.height = CSSProperties.HeightUnionType.of("45px");
         container.style.width = CSSProperties.WidthUnionType.of("100%");
 
         addItem(textFlowLaneFooter);
@@ -35,7 +34,7 @@ public class Footer extends EnoItem {
             textFlowLaneFooter.clear();
 
             final TextItem textItem = new TextItem(footerChange.getContent());
-            textItem.getStyle().fontSize = CSSProperties.FontSizeUnionType.of("20px");
+            textItem.getStyle().fontSize = CSSProperties.FontSizeUnionType.of("30px");
             textItem.getStyle().color = "white";
             textFlowLaneFooter.addItem(textItem);
         });
